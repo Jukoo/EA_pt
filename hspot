@@ -1,0 +1,58 @@
+########################## 
+#  ▌ ▌   ▞▀▖▛▀▖▞▀▖▀▛      version : 0.0.1 beta 
+#  ▙▄▌▄▄▖▚▄ ▙▄▘▌ ▌ ▌      codename: sugar-bowl  
+#  ▌ ▌   ▖ ▌▌  ▌ ▌ ▌      ********************
+#  ▘ ▘   ▝▀ ▘  ▝▀  ▘        ****************
+#################################################################
+# this file is basic h-spot config you can modify the behavior  #
+# of the script by activating or disabling some script module   #
+# by decompressing the lines below                              #
+#################################################################
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# COMMENT  OR UNCOMMENT THE LINES BELOW TO ENABLE OR DESABLE A +
+#                      MODULE                                  +
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#set -x              #-> Activate the debugger and show how the script run 
+set -o errexit       #->  exit if error was occured  in the script [recommanded] 
+#set -o nounset      #-> the show the unbounde variable  [usefull to optimize and refactor]
+#set -euo pipefail   #-> strict mode show the hidden failure [ not recommanded ] 
+
+###             ###
+# STEP RUNNING ...#
+###             ###
+
+#-> INSTALL THE REQUIRED PACKAGES 
+#-> DISPATCH THE  CONFIGURATION  IN THE TARGETED NEEDED FILE 
+
+null_byte=$((0x0))     # success   
+unlocate_file=$((0x1))     # Error exit 
+
+# if  the file source is not defined it nothing will be printed 
+
+. beehive 
+[ $? -eq $null_byte ] || exit $unlocate_file  # exit if source file is not available 
+ 
+##                   ##
+# Script proccessing  #
+##                   ## 
+
+printHeadscript        # show the head information about the script  
+fudge 30  .1 initializing 
+:initscaling:          # check if the script is run as root or not 
+#pi::pkgMan            # extracte the pkgmanager   
+libspkgs-Install       # install all required libs  
+
+#targetbinded          # show  the line printed on etc/dnsmasq.conf  
+enable_dnsmasq_conf    # write first headline  in etc/dnsmasq.conf
+
+#host_data             # print the host ip target on stdout  term 
+dnsmask_hosts          # write targeted hosted domain in /var/run/dnsmasq/hosts  
+
+test $? -eq 0 && prompt "init setup done "
+
+##-------------##
+#--Basics Args--#
+##-------------##
+
+
+
