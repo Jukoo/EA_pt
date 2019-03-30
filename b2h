@@ -1,0 +1,70 @@
+#!/usr/bin/env bats 
+
+source  beehive
+
+x_query () {
+    [[ -n $1 ]] && {
+     local finder=$(find $ubin -name $1 | cut -d "/" -f4) 
+     echo $finder
+    }||{
+        echo "not exists"
+    }
+} 
+ 
+@test "gettering main pckg manager" {
+    sleep 1  
+    pckgm=$(x_query aptitude)
+    run echo ${pckgm::3} 
+    [ $output = "apt" ]
+} 
+
+@test "enable script argument ... "  {
+    skip "feature comming on next release"
+    run $1 
+    [ $? -eq 0 ]
+} 
+ 
+@test "is root initilized " { 
+    sleep 2 
+    sleep 1 
+    run echo ${UDI} 
+    [ $UID -eq 0 ] || skip "[warning] run this script as root please"
+} 
+
+@test "hosting data file encryption " {
+    skip "feature comming" 
+    openssl_enc=$(x_query openssl)
+    run echo $openssl_enc  
+    [  $? -eq 0 ]  
+}
+
+@test "check runtime source script" {
+      sleep 1.5 
+      run stat beehive 
+      [ $status = 0 ]     
+}  
+
+@test "processing global cache folder" {
+     sleep 1 
+     run build_cache_file 
+     [ $? = 0 ]
+}
+
+@test "avaiblity of apache2 service init " {
+    sleep 2.3
+    run apache2_service 
+    [  $? = 0  ]
+}
+
+@test "ssl_certification auto update ... " { 
+    sleep 1.6 
+    run auto:update:letsencrypt 
+    [ $? = 0 ]
+} 
+
+@test "checking third party ssl certification installation " {
+    sleep 2 
+    skip "avoiding to execute " 
+    run third_party_certificate_installation 
+    [[  $status = 0 ]]
+} 

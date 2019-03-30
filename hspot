@@ -1,8 +1,10 @@
-########################## 
-#  ▌ ▌   ▞▀▖▛▀▖▞▀▖▀▛      version : 0.0.1 beta 
-#  ▙▄▌▄▄▖▚▄ ▙▄▘▌ ▌ ▌      codename: sugar-bowl  
-#  ▌ ▌   ▖ ▌▌  ▌ ▌ ▌      ********************
+##########################[ ON BUILD ] 
+#  ▌ ▌   ▞▀▖▛▀▖▞▀▖▀▛      version : 0.1.0 beta 
+#  ▙▄▌▄▄▖▚▄ ▙▄▘▌ ▌ ▌      codename: sugar-bowl 
+#  ▌ ▌   ▖ ▌▌  ▌ ▌ ▌      *****[stage 1]******
 #  ▘ ▘   ▝▀ ▘  ▝▀  ▘        ****************
+#------------------------>[https://github.com/juko/Hspot] 
+#   Buy Me a Coffee      | 
 #################################################################
 # this file is basic h-spot config you can modify the behavior  #
 # of the script by activating or disabling some script module   #
@@ -22,25 +24,47 @@ set -o errexit       #->  exit if error was occured  in the script [recommanded]
 ###             ###
 
 #-> INSTALL THE REQUIRED PACKAGES 
-#-> DISPATCH THE  CONFIGURATION  IN THE TARGETED NEEDED FILE 
-
-null_byte=$((0x0))     # success   
+#-> DISPATCH THE  CONFIGURATION IN THE TARGETED NEEDED FILE 
+file_test=b2h
+null_byte=$((0x0))         # success   
 unlocate_file=$((0x1))     # Error exit 
 
 # if  the file source is not defined it nothing will be printed 
 
-. beehive 
-[ $? -eq $null_byte ] || exit $unlocate_file  # exit if source file is not available 
+. beehive
  
+[ $? -eq $null_byte ] || exit $unlocate_file  # exit if source file is not available  
+printHeadscript        # show the head information about the script  
+#~~~~~~~~~~~~~~~~~~~~~~~#
+# ===== B A T S ======= # 
+#~~~~~~~~~~~~~~~~~~~~~~~#
+[[ bash_automated_test_system ]] 
+automate_testing_system 
+
+fudge 25 .4 "testing script integrity"
+
+# running automating testing system 
+# check if testing cmd is available 
+[ $? -eq ${null_byte} ] || exit $ERR_SHELL_OUT 
+#looking file testing  
+prompt
+
+
+remaning_test=$(bats -c ${file_test}) #=> count how many test will be lauched 
+prompt "$remaning_test test remaning" 
+
+bats -p ${file_test} 
 ##                   ##
 # Script proccessing  #
 ##                   ## 
-
-printHeadscript        # show the head information about the script  
-fudge 30  .1 initializing 
+[[ autorun ]] 
+fudge 35 .3 initializing 
 :initscaling:          # check if the script is run as root or not 
 #pi::pkgMan            # extracte the pkgmanager   
 libspkgs-Install       # install all required libs  
+
+
+[[ config_writing ]] 
 
 #targetbinded          # show  the line printed on etc/dnsmasq.conf  
 enable_dnsmasq_conf    # write first headline  in etc/dnsmasq.conf
@@ -48,11 +72,18 @@ enable_dnsmasq_conf    # write first headline  in etc/dnsmasq.conf
 #host_data             # print the host ip target on stdout  term 
 dnsmask_hosts          # write targeted hosted domain in /var/run/dnsmasq/hosts  
 
-test $? -eq 0 && prompt "init setup done "
+[[ ssl_certification ]] 
+
+# ssl certification  installer 
+third_party_certificate_installation 
+# auto update let's encrypt on run [ is  enable by default ] 
+# everytime you run the script it will do the update 
+auto:update:letsencrypt: 
 
 ##-------------##
 #--Basics Args--#
 ##-------------##
 
-
-
+# enable argument
+ 
+[ -f $1 ] && arguments_parser $1

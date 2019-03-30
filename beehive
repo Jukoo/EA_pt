@@ -1,4 +1,4 @@
-#!/bin/env bash 
+#!/bin/bash 
 #############################
 #  DO NOT  EDIT THIS FILE  
 #  REFERT TO THE CONGIF FILE 
@@ -8,25 +8,31 @@
 ######################################
 
 #!  you need to  run this script as root 
+# the configuration use letsencrypt too ssl certification 
 
 
-ERR_SHELL_OUT=$((2#00001)) 
+ERR_SHELL_OUT=$((2#0001))
 UID_ROOT=$((0x0))
 ERR_NO_ROOT=$((0x3E8))
 ubin=/usr/bin/ 
 conf_dir=/etc/  
 DNSMSK=dnsmasq 
-var_run=/var/run/ 
-
+var_run=/var/run/
+SSL_letsEncrypt=letsencrypt  
+dir_src_load=https://github.com 
+letsencrypt_default_dir=/opt/$SSL_letsEncrypt
+srv_cf=site.conf
+ssl_default_conf=ssl.conf
 
 declare -a libspkgs 
-libspkgs=(
+libspkgs=( 
     "git"          # fast, scalable, distributed revision control system [prioritary] 
     "apache2"      # Apache Http Server 
     "php7.0-curl"  # CURL  Module for Php 
     "php7.0-fpm"   # Server-side HTML-embedded scripting language (FPM-CGI binary) 
 )
 declare -r libspkgs #locked to read only immutable 
+dir_ssl_setup=$conf_dir${libspkgs[1]}/sites-available/ 
 
 pi::pkgMan () {
     local raspack=$(find ${ubin} -name aptitude | cut -d"/" -f4) 
@@ -39,20 +45,21 @@ pi::pkgMan () {
         return $UID 
     else 
       bail "[only root  is allowed to run the script]" $ERR_NO_ROOT
- 
     fi 
 }
 
-
+# look up the usuall emplacement of exec commande 
+# when the commande  wasn't found i'll well be automaticli downlaoded 
+# from package manager 
 libspkgs-Install() { 
     local pretended_dir_loc 
-    declare -A pretended_dir_loc 
+    declare -A pretended_dir_loc             
     pretended_dir_loc=(
         [ubindir]=$ubin 
         [confdir]=$conf_dir 
-    )
-    local tmp_file=".cache" 
-    if [[ ! -f $tmp_file ]] ; then 
+    )  
+    if [[ ! -f  .globalCache/.beecache ]] ; then 
+
         prompt "installing missing package running in backgroung "
         prompt "please wait"  
         for  lib in ${libspkgs[@]} ; do 
@@ -66,22 +73,25 @@ libspkgs-Install() {
                     prompt "[ $lib is already installed ]" 
                 fi 
             done 
-        done  
+        done
+        test $? -eq 0 &&  build_cache_file 
     else 
         prompt "all required libs ate installed"
     fi 
 } 
 
 
+  #######   #######
+####  +w conf    ####
+  #######   #######
 { #Configuration Namespace 
-
   function targetbinded  {
      # fudge 10 .3 "bingind $DNSMSK hosting"
 echo "no-hosts 
 addn-hosts=${var_run}$DNSMSK/hosts" 
   } 
 
-  function  host_data { 
+  function  host_data {  
    #fudge  15 .2 "writing  targeted host data"
 echo "127.0.0.1       honey.pot
 172.16.0.1      www.facebook.com
@@ -107,8 +117,8 @@ echo "127.0.0.1       honey.pot
   dnsmask_hosts(){ 
 
     if [[ -d ${var_run}$DNSMSK  ]] ; then  
-        local host_file_size=$(wc ${var_run}$DNSMSK/hosts | cut -d " " -f3 )
         [[ $host_file_size -ne 0  ]] && [[  -f $var_run$DNSMSK/host ]] && {
+        local host_file_size=$(wc ${var_run}$DNSMSK/hosts | cut -d " " -f3 )
           prompt "$host_file_size lines was affected " 
         } || {
           prompt "write target hosted " sleep 2 
@@ -120,12 +130,127 @@ echo "127.0.0.1       honey.pot
     fi  
   } 
 
+}
+###########################################
+#  Internal function logical core of      #
+#       beehive script runtime            #
+########################################### 
+
+  
+function third_party_certificate_installation {
+    #creating hiden cache file 
+    local letscache=tpci_letsenc 
+    if [[ ! -d  $letsencrypt_default_dir ]] ; then 
+        sudo ${libspkgs[0]} clone $dir_src_load/$SSL_letsEncrypt/${SSL_letsEncrypt} $letsencrypt_default_dir 
+        [ $? -eq 0 ] && build_cache_file $letscache 
+        prompt " pointing to %$letsencrypt_default_dir" 
+        auto:update:letsencrypt: 
+        apache2_service halt # stop apache2 service 
+        prompt "certificate setup" 
+      else 
+        prompt " letsencrypt module available" 
+    fi 
+
+    if [[ ! -f $dir_ssl_setup$srv_cf ]] ; then 
+            tranfer_default_conf_to $dir_ssl_setup$srv_cf  
+            prompt "writing ssl certification" 
+            edit_ssl_conf
+        else 
+            prompt "the certificate is already set" 
+            prompt "check this directory -> $letsencrypt_default_dir" 
+     fi  
 
 }
 
 
+function tranfer_default_conf_to {
+    #required only 1 argument 
+    if [[ -n $1 ]]  ; then 
+        prompt "looking $ssl_default_conf ... "   
+        cat ${ssl_default_conf} > $1 
+        test $? -eq 0 || bail "$ssl_default_conf no found" 
+    else 
+        bail "IO_file write error... no arg found" 
+    fi 
+}
+function edit_ssl_conf { 
+    prompt "[no escape] please specify all request information asked"
+    declare -A inputrequest 
+    inputrequest=(
+        [server_admin_email_contact]="your-email-address" 
+        [server_name]="your-server-name" 
+        [domaine_name]="your-domaine-name" 
+    ) 
+    declare  -a response  default_partern 
+    default_partern=(
+    "VOTRE_ADRESSE_MAIL" 
+    "VOTRE_NOM_DE_SERVER"
+    "VOTRE_NOM_DE_DOMAINE"
+    )
+    for request in ${inputrequest[@]} ; do
+        read -p "$request : " current_res 
+        if [[ -n $current_res ]] ; then  
+            response+=("$current_res") 
+        fi 
+    done  
+    { # information dispatching 
+        for(( i=0  ; i < ${#default_partern[@]} ; i++)) ; do 
+            sed  -i s/${default_partern[$i]}/${response[$i]}/g $dir_ssl_setup$srv_cf 
+        done 
+    }
+
+}
+function auto:update:letsencrypt: {
+    local cwd=$(pwd) 
+    cd $letsencrypt_default_dir 
+    [ $? -eq 0 ] && {
+        #fudge 12 .3 lvl_up_letsencrypt 
+        git pull 
+        [ $? -eq 0 ] && prompt "okay well done " ; $(cd $cwd) 
+    } || {
+       bail "cannot change the directory "
+    }  
+} 
+
+function apache2_service {
+     declare -a cID 
+     cID=$(pidof $libspkgs[2]) 
+      if [[ -n $1 ]]&&[[ $1 == "start" ]]
+      then 
+            sudo service  ${libspkgs[1]} $1  
+            test $? -eq 0 && prompt "${libspkgs[1]} successfully started" 
+            fudge 12 .2 collecting_pid_service_started_from  
+            for pid_service in $cID ; do 
+                prompt "[ $pid_service ]  started " 
+                sleep 2 
+            done 
+      elif [[ -n $1  ]] && [[ $1 == "halt" ]] ; then  
+           sudo service ${libspkgs[1]}  $1 
+           prompt "deleting underproccess of  ${libspkgs[1]}"
+           for pid_service in $cID ; do 
+               prompt "[ $pid_service ]  -> dead "  
+               sleep 2 
+           done
+      else 
+       bail " bad arguments "     
+      fi 
+} 
+
+
+function build_cache_file  { 
+    local GC=.globalCache  
+    if [[  ! -d $GC ]] ;then 
+        mkdir $GC
+    fi 
+    local DEFAULT_FILE_CACHE=".beecache"  # the default cache file used if no param defined 
+    if [[  -n  $1 ]] ; then 
+       touch "$GC/.$1" 
+   else 
+       touch $GC/$DEFAULT_FILE_CACHE 
+    fi  
+} 
 function printHeadscript {
-    sed -n 1,6p $0 
+    sed -n 1,8p $0 
 }
 
 function prompt {
@@ -148,6 +273,15 @@ function bail {
   fi
 }
 
+function cache_deposit {
+    if [[ ! -f .globalCache ]] ; then 
+        prompt " initialize global cache" 
+        fudge  12 .2 "init cache folder "
+        mkdir .globalCache 
+    else 
+        prompt "cache dir checked "
+    fi 
+}
 
 fudge() { 
 
@@ -161,17 +295,42 @@ fudge() {
         echo "rock yourself " 
         return 0 
     }
-    [[ -n $3 ]] && prompt "$3 ..." 
+    [[ -n $3 ]] && prompt "$3..." 
     echo -en "$b_CGSC|"
     while [ $Limite_rate -gt $1 ] ; do
         printf  "$char" && sleep $2 
         starter=$((starter +1)) 
         if [[  $starter -eq $1 ]] ; then 
-            echo -en "|100 % [done] $CDEF"
+            echo -en "|   100 % [done] $CDEF"
             echo 
             return 0 
         fi 
     done
+
+}
+{
+    automate_testing_system (){ 
+        local bats_exec=$(find $ubin -name bats)
+        declare -r bats_exec  
+        if [[  ${bats_exec##*/} == "bats" ]] ; then    
+            return 0  # bats command test found 
+        else 
+            prompt "bats cmd not found" 
+            read -p "would you like to install bats cmd exec[Yy|Nn]"  
+            case $REPLY in 
+                [yes]|[Yy]|[Es]|[Ss])
+                    sudo $(pi::pkgMan) install ${bats_exec##*/} --assume-yes ;;
+                *) exit 1 ;; 
+            esac
+        fi  
+    } 
+
+    arguments_parser() { 
+        if [[ -n $1  ]]
+        then 
+           return 0 
+        fi  
+    } 
 
 }
 
