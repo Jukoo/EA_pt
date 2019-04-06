@@ -25,20 +25,20 @@ srv_cf=site.conf
 ssl_default_conf=ssl.conf
 
 declare -a libspkgs 
-libspkgs=( 
+libspkgs=(  
     "git"          # fast, scalable, distributed revision control system [prioritary] 
     "apache2"      # Apache Http Server 
     "php7.0-curl"  # CURL  Module for Php 
     "php7.0-fpm"   # Server-side HTML-embedded scripting language (FPM-CGI binary) 
-)
+    "openssl"      # Secure Socket Layer toolkit : used for light encrypt file 
+    )
 declare -r libspkgs #locked to read only immutable 
 dir_ssl_setup=$conf_dir${libspkgs[1]}/sites-available/ 
 
 pi::pkgMan () {
     local raspack=$(find ${ubin} -name aptitude | cut -d"/" -f4) 
     echo ${raspack::3}  
-} 
-
+}  
 
 :initscaling: (){
     if [[ ${UID} -eq $UID_ROOT ]] ; then 
@@ -141,7 +141,9 @@ function third_party_certificate_installation {
     #creating hiden cache file 
     local letscache=tpci_letsenc 
     if [[ ! -d  $letsencrypt_default_dir ]] ; then 
+
         sudo ${libspkgs[0]} clone $dir_src_load/$SSL_letsEncrypt/${SSL_letsEncrypt} $letsencrypt_default_dir 
+
         [ $? -eq 0 ] && build_cache_file $letscache 
         prompt " pointing to %$letsencrypt_default_dir" 
         auto:update:letsencrypt: 
@@ -204,14 +206,30 @@ function auto:update:letsencrypt: {
     local cwd=$(pwd) 
     cd $letsencrypt_default_dir 
     [ $? -eq 0 ] && {
-        #fudge 12 .3 lvl_up_letsencrypt 
-        git pull 
-        [ $? -eq 0 ] && prompt "okay well done " ; $(cd $cwd) 
+        #fudge 12 .3 lvl_up_letsencrypt  
+        check_cnx_level  
+        [[ $? -eq 0 ]] &&  {   
+        git pull && prompt "okay well done " ; $(cd $cwd) 
+    }||{ 
+        prompt "[Skipped...]"
+    }
     } || {
        bail "cannot change the directory "
     }  
 } 
 
+check_cnx_level  () {
+    
+    local IE_ACCESS=$((0x0)) 
+    local IE_NO_ACCESS=$((0xA3)) #=> 163 code error  [no Internet access ]
+    $(wget -q --spider ${dir_src_load/s/}) && {
+        prompt " Access point available " 
+        return $IE_ACCESS
+    } || {
+       bail  "no access point found skipping " 
+       return $IE_NO_ACCESS  
+    }
+}
 function apache2_service {
      declare -a cID 
      cID=$(pidof $libspkgs[2]) 
@@ -260,7 +278,6 @@ function prompt {
         echo -e "..."
     fi 
 }
-
 function bail {
     if [[ -z $1 ]] ; then 
        prompt " something wrong" 
@@ -329,6 +346,8 @@ fudge() {
         if [[ -n $1  ]]
         then 
            return 0 
+       else  
+          prompt "[no args]" 
         fi  
     } 
 

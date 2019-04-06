@@ -35,6 +35,11 @@ unlocate_file=$((0x1))     # Error exit
  
 [ $? -eq $null_byte ] || exit $unlocate_file  # exit if source file is not available  
 printHeadscript        # show the head information about the script  
+
+#[[ Authentification ]]  
+# add authentification in next feature 
+
+ 
 #~~~~~~~~~~~~~~~~~~~~~~~#
 # ===== B A T S ======= # 
 #~~~~~~~~~~~~~~~~~~~~~~~#
@@ -78,6 +83,8 @@ dnsmask_hosts          # write targeted hosted domain in /var/run/dnsmasq/hosts
 third_party_certificate_installation 
 # auto update let's encrypt on run [ is  enable by default ] 
 # everytime you run the script it will do the update 
+# while Internet connectivity is running or it 'll be skipped...  
+# check_cnx_level
 auto:update:letsencrypt: 
 
 ##-------------##
@@ -86,4 +93,6 @@ auto:update:letsencrypt:
 
 # enable argument
  
-[ -f $1 ] && arguments_parser $1
+[ -n $1 ] && arguments_parser $1
+
+
