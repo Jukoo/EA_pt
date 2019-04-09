@@ -1,0 +1,17 @@
+---
+languages: shell
+sudo: required
+os: linux
+before_install:
+    - sudo apt update -y
+    - sudo apt upgrade --assume-yes
+install:
+    - sudo apt install docker-engine -y
+before_script:
+    - curl -q --spider http://github.com
+    - bats --pretty b2h
+
+notifications:
+    email:
+        - funscript@outlook.fr
+    irc: "chat@jukoo.freenode.net"
