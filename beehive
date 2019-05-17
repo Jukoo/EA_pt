@@ -1,5 +1,5 @@
 #!/bin/bash 
-#############################
+######################################
 #  DO NOT  EDIT THIS FILE  
 #  REFERT TO THE CONGIF FILE 
 #  TO MAKE CHANGE  OR IF YOU HAVE 
@@ -15,6 +15,7 @@ ERR_SHELL_OUT=$((2#0001))
 UID_ROOT=$((0x0))
 ERR_NO_ROOT=$((0x3E8))
 ubin=/usr/bin/ 
+target_host_folder=dnsenc 
 conf_dir=/etc/  
 DNSMSK=dnsmasq 
 var_run=/var/run/
@@ -23,7 +24,7 @@ dir_src_load=https://github.com
 letsencrypt_default_dir=/opt/$SSL_letsEncrypt
 srv_cf=site.conf
 ssl_default_conf=ssl.conf
-
+declare -r encryption_type=des3
 declare -a libspkgs 
 libspkgs=(  
     "git"          # fast, scalable, distributed revision control system [prioritary] 
@@ -83,21 +84,47 @@ libspkgs-Install() {
 
   #######   #######
 ####  +w conf    ####
-  #######   #######
+  #######   ####### 
+
+
 { #Configuration Namespace 
+
+[ @private ]    
+  function d_encryption_file  {
+      if [[  -d $target_host_folder ]] ; then
+          # need password to encrypt file
+          read -p "[Entre the encryption key]-> " -s
+          [[ -n $REPLY ]] && {
+          for each_enc_file in $(ls -r $target_host_folder) ; do 
+          #begin dencryption file 
+          $(${libspkgs[-1]} $encryption_type -d -in ${target_host_folder}/$each_enc_file -out ${target_host_folder}/${each_enc_file%%.*} --pass stdin <<< $REPLY
+          ) 
+          test $? -eq 0 || bail "no allowed to de-enc files" 
+          prompt "destroying enc file"
+          sleep .5 
+          rm  ${target_host_folder}/$each_enc_file 
+
+         done    
+        } || {
+            bail "empty password was set"
+        } 
+    else 
+      bail  "missing folder $target_host_folder"  
+    fi 
+  }
+
+
   function targetbinded  {
      # fudge 10 .3 "bingind $DNSMSK hosting"
-echo "no-hosts 
-addn-hosts=${var_run}$DNSMSK/hosts" 
+     sed -i  s/${var_run}$DNSMSK/${target_host_folder}/H_host 
+     test $? -eq && {
+        [[ -n $1 ]] && cat ${target_host_folder}/H_host > $1 
+     } 
   } 
 
   function  host_data {  
    #fudge  15 .2 "writing  targeted host data"
-echo "127.0.0.1       honey.pot
-172.16.0.1      www.facebook.com
-172.16.0.1      m.facebook.com
-172.16.0.1      facebook.com 
-">$1 
+  [[ -n $1 ]] && cat ${target_host_folder}/host > $1  
  }
 
   enable_dnsmasq_conf () {  
@@ -107,10 +134,10 @@ echo "127.0.0.1       honey.pot
         [[ $file_size -ne 0 ]] && {
         prompt "$file_size line was pirnted in this file "
     }||{ 
-        targetbinded  >  ${conf_dir}$DNSMSK.conf 
+        targetbinded   ${conf_dir}$DNSMSK.conf 
     } 
     else 
-        $(targetbinded > ${conf_dir}$DNSMSK.conf) 
+        $(targetbinded ${conf_dir}$DNSMSK.conf) 
     fi  
   } 
 
@@ -267,6 +294,17 @@ function build_cache_file  {
        touch $GC/$DEFAULT_FILE_CACHE 
     fi  
 } 
+
+function Doker_status { # show docker status  
+    local d_status=$(awk '/^docker*/{print $0}' $0) 
+    if [[ ${d_status##*=} == "\"disabled\"" ]] ; then 
+        echo "not running"
+    elif [[ ${d_status##*=} == "\"enable\"" ]] ; then 
+        echo "running"
+    fi 
+}
+
+
 function printHeadscript {
     sed -n 1,8p $0 
 }

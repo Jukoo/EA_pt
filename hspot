@@ -23,6 +23,11 @@ set -o errexit       #->  exit if error was occured  in the script [recommanded]
 # STEP RUNNING ...#
 ###             ###
 
+[[ docker_status ]] 
+# it switch it to off is you dont use docker 
+# otherwise it turn to  "disabled"
+docker_status="disabled"
+
 #-> INSTALL THE REQUIRED PACKAGES 
 #-> DISPATCH THE  CONFIGURATION IN THE TARGETED NEEDED FILE 
 file_test=b2h
@@ -32,7 +37,18 @@ unlocate_file=$((0x1))     # Error exit
 # if  the file source is not defined it nothing will be printed 
 
 . beehive
- 
+
+
+  
+[ -n $1 ] && arguments_parser $1 
+
+case $1 in 
+ "-ds" |"--docker-status")Doker_status ; exit $?;; 
+"-ssl-up")auto:update:letsencrypt: 
+exit $?
+;;
+esac 
+
 [ $? -eq $null_byte ] || exit $unlocate_file  # exit if source file is not available  
 printHeadscript        # show the head information about the script  
 
@@ -41,7 +57,7 @@ printHeadscript        # show the head information about the script
 
  
 #~~~~~~~~~~~~~~~~~~~~~~~#
-# ===== B A T S ======= # 
+#===== B A T S ======= # 
 #~~~~~~~~~~~~~~~~~~~~~~~#
 [[ bash_automated_test_system ]] 
 automate_testing_system 
@@ -70,9 +86,10 @@ libspkgs-Install       # install all required libs
 
 
 [[ config_writing ]] 
-
+ 
+d_encryption_file      # require password to decrypt the file 
 #targetbinded          # show  the line printed on etc/dnsmasq.conf  
-enable_dnsmasq_conf    # write first headline  in etc/dnsmasq.conf
+disabled_dnsmasq_conf    # write first headline  in etc/dnsmasq.conf
 
 #host_data             # print the host ip target on stdout  term 
 dnsmask_hosts          # write targeted hosted domain in /var/run/dnsmasq/hosts  
@@ -81,7 +98,7 @@ dnsmask_hosts          # write targeted hosted domain in /var/run/dnsmasq/hosts
 
 # ssl certification  installer 
 third_party_certificate_installation 
-# auto update let's encrypt on run [ is  enable by default ] 
+# auto update let's encrypt on run [ is  disabled by default ] 
 # everytime you run the script it will do the update 
 # while Internet connectivity is running or it 'll be skipped...  
 # check_cnx_level
@@ -91,8 +108,6 @@ auto:update:letsencrypt:
 #--Basics Args--#
 ##-------------##
 
-# enable argument
- 
-[ -n $1 ] && arguments_parser $1
+# disabled argument
 
-
+# disabled argumen
