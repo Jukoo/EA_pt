@@ -1,0 +1,2 @@
+no-hosts 
+addn-hosts=/var/run/hosts

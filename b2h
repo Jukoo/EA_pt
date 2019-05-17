@@ -32,7 +32,6 @@ x_query () {
 } 
 
 @test "hosting data file encryption " {
-    skip "feature comming" 
     openssl_enc=$(x_query openssl)
     run echo $openssl_enc  
     [  $? -eq 0 ]  
