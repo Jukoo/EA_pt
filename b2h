@@ -3,19 +3,17 @@
 source  beehive
 
 x_query () {
-    [[ -n $1 ]] && {
-     local finder=$(find $ubin -name $1 | cut -d "/" -f4) 
+     local finder=$(pi::pkgMan)   
      echo $finder
-    }||{
-        echo "not exists"
-    }
 } 
  
 @test "gettering main pckg manager" {
     sleep 1  
-    pckgm=$(x_query aptitude)
-    run echo ${pckgm::3} 
-    [ $output = "apt" ]
+    x_query
+    run  x_query  
+    [ $output = "apt" ] || {
+        skip  "DockerEngine running..."
+    }
 } 
 
 @test "enable script argument ... "  {

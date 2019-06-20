@@ -58,7 +58,9 @@ printHeadscript        # show the head information about the script
  
 #~~~~~~~~~~~~~~~~~~~~~~~#
 #===== B A T S ======= # 
-#~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~# 
+#
+if [[ $1 != "no-check"  ]]  ||  [[ -z  $1 ]] ; then 
 [[ bash_automated_test_system ]] 
 automate_testing_system 
 
@@ -75,6 +77,7 @@ remaning_test=$(bats -c ${file_test}) #=> count how many test will be lauched
 prompt "$remaning_test test remaning" 
 
 bats -p ${file_test} 
+fi 
 ##                   ##
 # Script proccessing  #
 ##                   ## 
@@ -109,5 +112,3 @@ auto:update:letsencrypt:
 ##-------------##
 
 # disabled argument
-
-# disabled argumen

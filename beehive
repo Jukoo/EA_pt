@@ -36,9 +36,15 @@ libspkgs=(
 declare -r libspkgs #locked to read only immutable 
 dir_ssl_setup=$conf_dir${libspkgs[1]}/sites-available/ 
 
-pi::pkgMan () {
-    local raspack=$(find ${ubin} -name aptitude | cut -d"/" -f4) 
-    echo ${raspack::3}  
+pi::pkgMan () { 
+    local DES=$(Doker_status) 
+    local raspack 
+    if [[ $DES == "running" ]]  ; then
+        raspack="LXDC"
+    else 
+        raspack=apt
+    fi 
+    echo ${raspack}  
 }  
 
 :initscaling: (){
@@ -298,9 +304,9 @@ function build_cache_file  {
 function Doker_status { # show docker status  
     local d_status=$(awk '/^docker*/{print $0}' $0) 
     if [[ ${d_status##*=} == "\"disabled\"" ]] ; then 
-        echo "not running"
+        echo "not running" 
     elif [[ ${d_status##*=} == "\"enable\"" ]] ; then 
-        echo "running"
+        echo "running" 
     fi 
 }
 
