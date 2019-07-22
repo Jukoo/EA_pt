@@ -38,8 +38,8 @@ unlocate_file=$((0x1))     # Error exit
 
 . beehive
 
+helper $1
 
-  
 [ -n $1 ] && arguments_parser $1 
 
 case $1 in 
@@ -62,7 +62,7 @@ printHeadscript        # show the head information about the script
 #
 if [[ $1 != "no-check"  ]]  ||  [[ -z  $1 ]] ; then 
 [[ bash_automated_test_system ]] 
-automate_testing_system 
+#automate_testing_system 
 
 fudge 25 .4 "testing script integrity"
 
@@ -82,7 +82,7 @@ fi
 # Script proccessing  #
 ##                   ## 
 [[ autorun ]] 
-fudge 35 .3 initializing 
+fudge 35 .1 initializing 
 :initscaling:          # check if the script is run as root or not 
 #pi::pkgMan            # extracte the pkgmanager   
 libspkgs-Install       # install all required libs  
@@ -90,11 +90,10 @@ libspkgs-Install       # install all required libs
 
 [[ config_writing ]] 
  
-d_encryption_file      # require password to decrypt the file 
-#targetbinded          # show  the line printed on etc/dnsmasq.conf  
-disabled_dnsmasq_conf    # write first headline  in etc/dnsmasq.conf
+#d_encryption_file      # require password to decrypt the file [not activated]
+enable_dnsmasq_conf    # write first headline  in etc/dnsmasq.conf
 
-#host_data             # print the host ip target on stdout  term 
+
 dnsmask_hosts          # write targeted hosted domain in /var/run/dnsmasq/hosts  
 
 [[ ssl_certification ]] 
@@ -111,4 +110,3 @@ auto:update:letsencrypt:
 #--Basics Args--#
 ##-------------##
 
-# disabled argument

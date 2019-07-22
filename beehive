@@ -9,6 +9,8 @@
 
 #!  you need to  run this script as root 
 # the configuration use letsencrypt too ssl certification 
+#  TODO  
+# [] run test once  
 
 
 ERR_SHELL_OUT=$((2#0001))
@@ -28,13 +30,15 @@ declare -r encryption_type=des3
 declare -a libspkgs 
 libspkgs=(  
     "git"          # fast, scalable, distributed revision control system [prioritary] 
+    "bats"         # bash autmated test systeme
     "apache2"      # Apache Http Server 
     "php7.0-curl"  # CURL  Module for Php 
     "php7.0-fpm"   # Server-side HTML-embedded scripting language (FPM-CGI binary) 
-    "openssl"      # Secure Socket Layer toolkit : used for light encrypt file 
+    "openssl"      # Secure Socket Layer toolkit : used for light encrypt file  
     )
-declare -r libspkgs #locked to read only immutable 
-dir_ssl_setup=$conf_dir${libspkgs[1]}/sites-available/ 
+
+declare -r libspkgs 
+dir_ssl_setup=$conf_dir${libspkgs[2]}/sites-available/ 
 
 pi::pkgMan () { 
     local DES=$(Doker_status) 
@@ -42,7 +46,7 @@ pi::pkgMan () {
     if [[ $DES == "running" ]]  ; then
         raspack="LXDC"
     else 
-        raspack=apt
+        raspack=apt-get
     fi 
     echo ${raspack}  
 }  
@@ -51,7 +55,12 @@ pi::pkgMan () {
     if [[ ${UID} -eq $UID_ROOT ]] ; then 
         return $UID 
     else 
-      bail "[only root  is allowed to run the script]" $ERR_NO_ROOT
+      #bail "[only root  is allowed to run the script]" $ERR_NO_ROOT  
+      [ force_root_to_log ] 
+      {
+        echo "[trusted]  require root privileges "   
+        `su` 
+      }
     fi 
 }
 
@@ -83,7 +92,7 @@ libspkgs-Install() {
         done
         test $? -eq 0 &&  build_cache_file 
     else 
-        prompt "all required libs ate installed"
+        prompt "all required libs are installed"
     fi 
 } 
 
@@ -121,16 +130,11 @@ libspkgs-Install() {
 
 
   function targetbinded  {
-     # fudge 10 .3 "bingind $DNSMSK hosting"
-     sed -i  s/${var_run}$DNSMSK/${target_host_folder}/H_host 
-     test $? -eq && {
-        [[ -n $1 ]] && cat ${target_host_folder}/H_host > $1 
-     } 
+     cat ${target_host_folder}/H_host > $1 
   } 
 
   function  host_data {  
-   #fudge  15 .2 "writing  targeted host data"
-  [[ -n $1 ]] && cat ${target_host_folder}/host > $1  
+      cat ${target_host_folder}/host > $1  
  }
 
   enable_dnsmasq_conf () {  
@@ -155,10 +159,11 @@ libspkgs-Install() {
           prompt "$host_file_size lines was affected " 
         } || {
           prompt "write target hosted " sleep 2 
-          host_data  ${var_run}$DNSMSK/hosts 
+          host_data ${var_run}$DNSMSK/hosts 
         } 
     else
-        mkdir ${var_run}$DNSMSK 
+         mkdir ${var_run}${DNSMSK}
+        [[ $? -ne  0 ]] && echo "cannot create dir"
         dnsmask_hosts 
     fi  
   } 
@@ -369,23 +374,23 @@ fudge() {
     done
 
 }
-{
-    automate_testing_system (){ 
-        local bats_exec=$(find $ubin -name bats)
-        declare -r bats_exec  
-        if [[  ${bats_exec##*/} == "bats" ]] ; then    
-            return 0  # bats command test found 
-        else 
-            prompt "bats cmd not found" 
-            read -p "would you like to install bats cmd exec[Yy|Nn]"  
-            case $REPLY in 
-                [yes]|[Yy]|[Es]|[Ss])
-                    sudo $(pi::pkgMan) install ${bats_exec##*/} --assume-yes ;;
-                *) exit 1 ;; 
-            esac
-        fi  
-    } 
 
+
+{
+    usage () {
+        echo """
+         ${0##*./} usage : 
+         -h | --help --->  to see usage 
+         no-check    --->  to skip bats test 
+        """
+    }
+    helper() {
+        if [[ -n $1 ]] ; then 
+            case $1 in 
+                "-h"|"--help" ) usage ; exit 2 ;;
+            esac 
+        fi 
+    }
     arguments_parser() { 
         if [[ -n $1  ]]
         then 
